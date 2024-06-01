@@ -3,10 +3,10 @@ import googlemaps
 from datetime import datetime
 
 # OpenAI GPT API 설정
-openai.api_key = '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'
+openai.api_key = ''
 
 # Google Maps API 설정
-gmaps = googlemaps.Client(key='AIzaSyBSxTq4lqYucQyvAZ8WxFqe3EFiMx3ELcE')
+gmaps = googlemaps.Client(key='')
 
 def generate_query(location):
     # GPT를 사용하여 사용자 위치를 기반으로 병원 검색 쿼리 생성
