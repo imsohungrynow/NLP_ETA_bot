@@ -71,11 +71,14 @@ else:
 time.sleep(1)
 print(f"\n진단 결과: {diagnosis}")
 
-# 진단 결과에 따른 답변 생성
+# 대화 히스토리를 저장하기 위한 메모리 설정
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
+# 진단 결과를 메모리에 추가
 if count >= 4:
     # 진단 메시지
     message_content = """
-    친절하고 부드럽게 대화하세요 : 사용자는 에이디에이치디 판정을 받았습니다. 당황스러워할 수 있습니다.
+    친절하고 부드럽게 대화하세요 : 사용자는 ADHD 판정을 받았습니다. 당황스러워할 수 있습니다.
 
     자신에 대해 교육하세요: ADHD가 당신에게 어떤 영향을 미치는지 더 많이 배우세요. 자신의 상태를 이해하면 치료 및 자기 관리에 대한 정보를 바탕으로 결정을 내릴 수 있습니다.
 
@@ -88,22 +91,24 @@ if count >= 4:
     최대 문장의 길이는 3문장으로 해주세요.
     """
 
-    systemMessage = SystemMessage(content=message_content)
-    response = chat.invoke([systemMessage])
+    system_message = SystemMessage(content=message_content)
+    response = chat.invoke([system_message])
     print(response.content)
+    memory.chat_memory.messages.append(SystemMessage(content=response.content))
 
 else:
     message_content_N = """
-        지금 이 사용자는 ADHD 진단 결과에서 ADHD 판정을 받지 않았습니다: 이를 숙지하고 대화하세요.
+    지금 이 사용자는 ADHD 진단 결과에서 ADHD 판정을 받지 않았습니다: 이를 숙지하고 대화하세요.
 
-        자신에 대해 교육하세요: ADHD가 당신에게 어떤 영향을 미치는지 더 많이 배우세요. 자신의 상태를 이해하면 치료 및 자기 관리에 대한 정보를 바탕으로 결정을 내릴 수 있습니다.
+    자신에 대해 교육하세요: ADHD가 당신에게 어떤 영향을 미치는지 더 많이 배우세요. 자신의 상태를 이해하면 치료 및 자기 관리에 대한 정보를 바탕으로 결정을 내릴 수 있습니다.
 
-        사용자에게 ADHD가 흔하다는 말을 해주세요 : ADHD는 바쁜 현대인들에게 충분히 생길 수 있는 말입니다.       
-        """
+    사용자에게 ADHD가 흔하다는 말을 해주세요: ADHD는 바쁜 현대인들에게 충분히 생길 수 있는 말입니다.       
+    """
 
     human_message = HumanMessage(content=message_content_N)
     response = chat.invoke([human_message])
     print(response.content)
+    memory.add_messages([SystemMessage(content=response.content)])  # 응답을 메모리에 추가
 
     # 조기 종료
     sys.exit()
@@ -122,7 +127,7 @@ prompt_content = """
 
 사용자가 병원 추천을 원하지 않으면 ADHD 관련 일반적인 도움말과 지원 그룹 정보를 제공하세요.
 
-병원과 관련된 질문을 받아주세요: 약물치료는 병원에서 이루어집니다. 약물 치료와 관련된 얘기가 나오면 병원 이야기를 해주세요.
+*필수 기능입니다. 병원과 관련된 질문을 받아주세요: 약물치료는 병원에서 이루어집니다. 약물 치료와 관련된 얘기가 나오면 병원 이야기를 해주세요.
 
 *필수 기능입니다. 병원에 대해서 모든 것을 말해주세요: 병원의 정보에 대해서 궁금한 사용자에게 위치를 물어보고 그 주변 병원의 이름, 정보, 가는 방법 등 가능한 방법을 알려주세요.
 """
@@ -136,14 +141,11 @@ prompt = ChatPromptTemplate(
     ]
 )
 
-# 대화 히스토리를 저장하기 위한 메모리 설정
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-
 # 대화 체인 설정
 conversation = LLMChain(
     llm=chat,
     prompt=prompt,
-    verbose=True,  # 과정 안보고싶으면 폴스로
+    verbose=True,  # 과정 안보고싶으면 False
     memory=memory
 )
 
