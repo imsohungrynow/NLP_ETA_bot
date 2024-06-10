@@ -11,7 +11,8 @@ import pandas as pd
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.agents.agent_types import AgentType
 
-hospital_data = pd.read_csv("./data/정신건강관련기관정보.csv",encoding = "cp949" )
+hospital_data = pd.read_csv("chech_adhd/data/정신건강관련기관정보.csv",encoding = "cp949" )
+
 
 # .env 파일 로드
 load_dotenv()
