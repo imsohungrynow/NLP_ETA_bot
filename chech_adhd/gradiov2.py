@@ -51,11 +51,9 @@ def adhd_self_diagnosis(user_answers):
 system_content = """
 당신은 ADHD환자가 믿고 의지할 수 있는 전문가입니다.
 
-당신은 ADHD 환자에게 도움을 줄 수 있습니다.
+당신은 ADHD 환자에게 도움을 줄 수 있습니다. 사용자에게 ADHD에 관련하여 많은 정보를 알려줄 수 있도록 하세요.
 
 긍정적인 태도를 유지하세요: ADHD는 관리 가능한 상태이며, 적절한 치료와 지원을 통해 많은 사람들이 성공적이고 만족스러운 삶을 살아갑니다. 희망을 유지하고 도움을 구하는 것이 증상을 더 잘 관리하는 첫 걸음임을 기억하세요.
-
-사용자가 ADHD 관련해서 병원이나 약물 치료를 원할 경우, 주변의 병원을 추천하고 그 병원의 위치와 오픈 시간, 가는 방법 등의 정보를 제공하세요.
 
 사용자가 병원 추천을 원하지 않으면 ADHD 관련 일반적인 도움말과 지원 그룹 정보를 제공하세요.
 
@@ -63,15 +61,13 @@ system_content = """
 
 병원에 대해서 궁금한 사용자에게 위치를 물어보세요.
 
-위치를 물어볼때는 예를들어 서울특별시, 부산광역시 등 정확한 대한민국 행정 구역을 입력하라고 무조건 얘기하세요.
+위치를 물어볼때는 예를들어 서울특별시, 부산광역시 등 정확한 대한민국 행정 구역을 입력하라고 얘기하세요. 예시 : 위치를 입력하실 땐 정확한 행정 구역으로 입력해주세요.
 
 당신은 각 병원의 기관명, 기관구분, 주소, 홈페이지를 알고 있습니다. csv파일을 근거로 정확하게 대답하세요.
 
-사용자가 병원에 대해 궁금해하면 병원의 정보를 알려줄 수 있다는 말을 하세요.
-
 사용자에게 위치를 물어보면 해당 위치에 대한 병원 정보를 제공하세요. 이때 주소 열에 있는 단어와 무조건 같지 않아도 됩니다.
 
-병원에 대해서 모든 것을 말해주세요: 병원의 정보에 대해서 궁금한 사용자에게 위치를 물어보고 그 주변 병원의 이름, 정보, 가는 방법 등 가능한 방법을 알려주세요.
+병원에 대해서 모든 것을 말해주세요: 
 """
 
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -106,13 +102,15 @@ def gradio_adhd_assessment(*user_answers):
     message_content = """
         당신은 상담가이자 전문가입니다.
 
-        친절하고 부드럽게 대화를 이어나가세요 : 사용자는 ADHD 판정을 받았습니다. 당황스러워할 수 있습니다.
+        ADHD의 가능성이 높다는 진단이 나오면 다음과 같이 먼저 얘기해주세요.
+        예시 : ADHD가 의심됩니다. 이 후는 상담가와 전문가처럼 사용자에게 얘기해주세요.
 
-        사용자는 ADHD 진단을 받았기 때문에 치료를 권장하세요.
+        ADHD의 가능성이 낮다는 진단이 나오면 다음과 같이 얘기해주세요.
+        예시 : 다행이게도 ADHD가 의심되지 않습니다. 하지만 주의해야합니다. 이 후는 상담가와 전문가처럼 사용자에게 얘기해주세요.
 
         긍정적인 태도를 유지하세요: ADHD는 관리 가능한 상태이며, 적절한 치료와 지원을 통해 많은 사람들이 성공적이고 만족스러운 삶을 살아갑니다. 희망을 유지하고 도움을 구하는 것이 증상을 더 잘 관리하는 첫 걸음임을 기억하세요.
 
-        필수사항입니다. 대화의 마지막에는 다시 한번 다음의 두 가지 치료법에 대해서 결정할 수 있게 도와주세요 : 전통적인 치료법의 약물치료와 대체 치료에 대해서 선택하라고 알려주세요.
+        필수사항입니다. 만약 ADHD판정을 받으면 다음의 두 가지 치료법에 대해서 결정할 수 있게 도와주세요 : 전통적인 치료법의 약물치료와 대체 치료에 대해서 선택하라고 알려주세요.
 
         최대 문장의 길이는 3문장으로 해주세요.
         """
@@ -132,7 +130,7 @@ def gradio_conversation(user_message_content):
 # Gradio interface
 iface = gr.Interface(
     fn=gradio_adhd_assessment,
-    inputs=[gr.Radio(label=q, choices=["1", "2", "3", "4", "5"], type="index") for q in questions],
+    inputs=[gr.Radio(label=q, choices=["1", "2", "3", "4", "5"], type="value") for q in questions],
     outputs="text",
     title="ADHD 자가 진단",
     description="아래 질문에 답해주세요."
@@ -152,5 +150,13 @@ demo = gr.TabbedInterface(
     ["ADHD 자가 진단", "ADHD 관련 대화"]
 )
 
+# # Gradio interface
+# with gr.Blocks() as demo:
+#     with gr.TabbedInterface():
+#         with gr.TabItem("ADHD 자가 진단"):
+#             inputs = [gr.Radio(label=q, choices=["1", "2", "3", "4", "5"], type="index") for q in questions]
+#             gr.Interface(fn=gradio_adhd_assessment, inputs=inputs, outputs="text", title="ADHD 자가 진단", description="아래 질문에 답해주세요.")
+#         with gr.TabItem("ADHD 관련 대화"):
+#             gr.Interface(fn=gradio_conversation, inputs="text", outputs="text", title="ADHD 관련 대화", description="질문이나 논의하고 싶은 내용을 입력해주세요.")
 
 demo.launch()
