@@ -1,9 +1,7 @@
-import gradio as gr
 import os
 from dotenv import load_dotenv
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
 import torch
-import numpy as np
 import scipy.io.wavfile
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
@@ -12,8 +10,6 @@ import pandas as pd
 import gradio as gr
 import pandas as pd
 import os
-from dotenv import load_dotenv
-
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import HumanMessage, SystemMessage
@@ -38,7 +34,7 @@ chat = ChatOpenAI(
 # 병원 데이터 로드
 hospital_data = pd.read_csv("./chech_adhd/data/정신건강관련기관정보.csv", encoding="cp949")
 
-
+# 자가 진단 질문
 questions = [
     "어떤 일의 어려운 부분은 끝내 놓고, 그 일을 마무리를 짓지 못해 곤란을 겪은 적이 있습니까?",
     "체계가 필요한 일을 해야 할 때 순서대로 진행하기 어려운 경우가 있습니까?",
@@ -48,7 +44,7 @@ questions = [
     "마치 모터가 달린 것처럼, 과도하게 혹은 멈출 수 없이 활동을 하는 경우가 있습니까?"
 ]
 
-# ADHD Self-diagnosis function
+# 자가진단 함수
 def adhd_self_diagnosis(user_answers):
     count = 0
     for i, answer in enumerate(user_answers):
@@ -61,7 +57,7 @@ def adhd_self_diagnosis(user_answers):
         diagnosis = "ADHD의 가능성이 낮습니다."
     return diagnosis
 
-# Create prompt templates and memory for conversation
+# prompt templates
 system_content = """
 당신은 ADHD환자가 믿고 의지할 수 있는 전문가입니다.
 
@@ -98,6 +94,7 @@ prompt = ChatPromptTemplate(
     ]
 )
 
+# conversation으로 답변 기억
 conversation = LLMChain(
     llm=chat,
     prompt=prompt,
@@ -105,6 +102,7 @@ conversation = LLMChain(
     memory=memory
 )
 
+# csv 파일 기반 답변 생성
 agent = create_pandas_dataframe_agent(
     chat,
     hospital_data,
@@ -113,20 +111,22 @@ agent = create_pandas_dataframe_agent(
     agent_type=AgentType.OPENAI_FUNCTIONS,
 )
 
-# Main function for Gradio interface
+# 자가 진단 기반 생성 AI 답변
 def gradio_adhd_assessment(*user_answers):
     user_answers = list(map(int, user_answers))
     diagnosis = adhd_self_diagnosis(user_answers)
     message_content = """
         당신은 상담가이자 전문가입니다.
 
-        친절하고 부드럽게 대화를 이어나가세요 : 사용자는 ADHD 판정을 받았습니다. 당황스러워할 수 있습니다.
+        ADHD의 가능성이 높으면 다음과 같이 먼저 얘기해주세요.
+        예시 : ADHD가 의심됩니다.  
 
-        사용자는 ADHD 진단을 받았기 때문에 치료를 권장하세요.
+        ADHD의 가능성이 낮으면 다음과 같이 얘기해주세요.
+        예시 : 다행이게도 ADHD가 의심되지 않습니다. 하지만 주의해야합니다.
 
         긍정적인 태도를 유지하세요: ADHD는 관리 가능한 상태이며, 적절한 치료와 지원을 통해 많은 사람들이 성공적이고 만족스러운 삶을 살아갑니다. 희망을 유지하고 도움을 구하는 것이 증상을 더 잘 관리하는 첫 걸음임을 기억하세요.
 
-        필수사항입니다. 대화의 마지막에는 다시 한번 다음의 두 가지 치료법에 대해서 결정할 수 있게 도와주세요 : 전통적인 치료법의 약물치료와 대체 치료에 대해서 선택하라고 알려주세요.
+        필수사항입니다. 만약 ADHD판정을 받으면 다음의 두 가지 치료법에 대해서 결정할 수 있게 도와주세요 : 전통적인 치료법의 약물치료와 대체 치료에 대해서 선택하라고 알려주세요.
 
         최대 문장의 길이는 3문장으로 해주세요.
         """
@@ -142,8 +142,6 @@ def gradio_conversation(user_message_content):
     else:
         result = conversation.invoke({"question": user_message_content})
         return result["text"]
-
-
 
 # 음악 설명 생성
 def generate_response(mood, genre, elements, tempo):
@@ -233,7 +231,7 @@ with gr.Blocks() as demo:
         
         # ADHD 병원추천 챗봇 탭
         with gr.TabItem("ADHD 병원 추천"):
-            user_input = gr.Textbox(label="질문 입력", placeholder="병원 정보나 ADHD 관련 질문을 입력하세요.")
+            user_input = gr.Textbox(label="질문 입력", placeholder="위치 예시 : 서울 특별시 00구, 부산광역시 00구")
             hospital_response_output = gr.Textbox(label="병원 추천 결과")
             gr.Button("추천 받기").click(
                 gradio_conversation, 
