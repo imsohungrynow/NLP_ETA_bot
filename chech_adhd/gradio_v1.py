@@ -92,15 +92,17 @@ agent = create_pandas_dataframe_agent(
 )
 
 # Gradio 인터페이스 설정
-def chat_interface(user_input, chat_history=[]):
+def chat_interface(user_input):
     # 초기 인사 메시지 및 첫 질문
     if not chat_history:
-        chat_history = [
-            ("system", "안녕하세요! ADHD 증상 체크를 도와드리겠습니다. 몇 가지 질문을 드릴게요.각 질문에 대해 다음과 같이 응답해주세요\n1: 전혀 그렇지 않다\n2: 거의 그렇지 않다\n3: 약간 혹은 가끔 그렇다\n4: 자주 그렇다\n5: 매우 자주 그렇다"),
-        ]
+        initial_message = "안녕하세요! ADHD 증상 체크를 도와드리겠습니다. 몇 가지 질문을 드릴게요. 각 질문에 대해 다음과 같이 응답해주세요\n1: 전혀 그렇지 않다\n2: 거의 그렇지 않다\n3: 약간 혹은 가끔 그렇다\n4: 자주 그렇다\n5: 매우 자주 그렇다"
         current_question = questions[0]
-        chat_history.append(("system", current_question))
-        return "", chat_history
+        chat_history = [
+            ("system", initial_message),
+            ("system", current_question)
+        ]
+        memory.save_memory({"chat_history": chat_history})
+        return current_question
 
     # 사용자 입력 처리
     memory.chat_memory.add_message(HumanMessage(content=user_input))  # 사용자 입력을 메모리에 추가
@@ -110,7 +112,8 @@ def chat_interface(user_input, chat_history=[]):
     if current_question_index < len(questions):
         current_question = questions[current_question_index]
         chat_history.append(("system", current_question))
-        return "", chat_history
+        memory.save_memory({"chat_history": chat_history})
+        return current_question
 
     # 사용자 입력 처리 후 마지막 질문에 대한 응답 저장
     try:
@@ -129,7 +132,7 @@ def chat_interface(user_input, chat_history=[]):
         message_content = """
         당신은 상담가이자 전문가입니다.
 
-        사용자는 ADHD 증상의 의심됩니다. 먼저, 사용자에게 ADHD증상이 의심된다는 말을 전달하세요.
+        사용자는 ADHD 증상이 의심됩니다. 먼저, 사용자에게 ADHD증상이 의심된다는 말을 전달하세요.
 
         친절하고 부드럽게 대화를 이어나가세요 : 사용자는 ADHD 판정을 받았습니다. 당황스러워할 수 있습니다.
 
@@ -168,24 +171,15 @@ def chat_interface(user_input, chat_history=[]):
         hospital_response = agent.run(user_input)
         memory.chat_memory.messages.append(SystemMessage(content=hospital_response))
         response_content = hospital_response
-
     else:
         result = conversation.invoke({"question": user_input})
         chat_history.append(("system", result["text"]))  # 수정된 부분
         response_content = result["text"]
 
+    memory.save_memory({"chat_history": chat_history})
+    return response_content
 
-    return response_content, chat_history
 
-with gr.Blocks() as demo:
-    chatbot = gr.Chatbot(label="ADHD 챗봇")
-    with gr.Row():
-        message_input = gr.Textbox(label="입력")
-        submit_button = gr.Button("전송")
-    submit_button.click(chat_interface, [message_input, chatbot], [message_input, chatbot])
-    message_input.value = ''  # 사용자 입력란 비우기
-
-# # Gradio 앱 설정
 # with gr.Blocks() as demo:
 #     chatbot = gr.Chatbot(label="ADHD 챗봇")
 #     with gr.Row():
@@ -193,24 +187,18 @@ with gr.Blocks() as demo:
 #         submit_button = gr.Button("전송")
 #     submit_button.click(chat_interface, [message_input, chatbot], [message_input, chatbot])
 
-
-# with gr.Blocks() as demo:
-#     chatbot = gr.Chatbot(label="ADHD 챗봇")
-#     with gr.Row():
-#         message_input = gr.Textbox(label="입력")
-#         submit_button = gr.Button("전송")
-#     def submit_action():
-#         user_input = message_input.value
-#         response, chat_history = chat_interface(user_input, chatbot.messages)
-#         chatbot.messages = chat_history
-#         chat_history.append(("user", user_input))  # 사용자 입력을 메시지에 추가
-#         chat_history.append(("system", response))  # 챗봇 응답을 메시지에 추가
-#         chatbot.update_chat()
-#     submit_button.click(submit_action)
-
-
-# with gr.Blocks() as demo:
-#     chatbot = gr.Chatbot(chat_interface, inputs="textbox", outputs="textbox", label="ADHD 챗봇")
+iface = gr.Interface(
+    fn=chat_interface,
+    inputs=[
+        gr.Textbox(label="질문 입력", placeholder="예: ADHD 증상 체크 질문을 입력하세요")
+    ],
+    outputs=[
+        gr.Textbox(label="시스템 응답")
+    ],
+    title="ADHD 챗봇",
+    description="ADHD 증상 체크 및 상담을 제공하는 챗봇입니다.",
+    theme="default"
+)
 
 # Gradio 앱 실행
-demo.launch()
+iface.launch()
