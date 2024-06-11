@@ -9,6 +9,7 @@ import time
 import pandas as pd
 import gradio as gr
 import pandas as pd
+import numpy as np
 import os
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
@@ -193,10 +194,17 @@ def music_features(response):
 processor = AutoProcessor.from_pretrained("facebook/musicgen-small")
 model = MusicgenForConditionalGeneration.from_pretrained("facebook/musicgen-small")
 
-def generate_music(summary, directory="./", duration_seconds=30):
+
+def generate_music(summary, duration_seconds, directory="./"):
     # Musicgen 모델을 사용하여 음악 생성
-    inputs = processor(text=[summary], padding=True, return_tensors="pt")
-    audio_values = model.generate(**inputs, max_new_tokens=256)
+    base_duration = 5  # 기본 설정된 음악 길이 (예시: 5초)
+    base_tokens = 256  # 기본 설정된 토큰 수
+
+    tokens_per_second = base_tokens / base_duration
+    max_new_tokens = int(tokens_per_second * duration_seconds)  # 길이에 따라 계산된 토큰 수
+
+    inputs = processor(text=[summary], padding=True, return_tensors="pt").to(device)
+    audio_values = model.generate(**inputs, max_new_tokens=max_new_tokens)
     sampling_rate = model.config.audio_encoder.sampling_rate
     
     # 파일 저장
